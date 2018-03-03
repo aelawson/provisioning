@@ -1,3 +1,9 @@
+terraform {
+  backend "local" {
+    path = "./terraform.tfstate"
+  }
+}
+
 module "provider" {
   source          = "./provider/digitalocean"
 
