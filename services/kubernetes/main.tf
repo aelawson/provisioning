@@ -28,9 +28,19 @@ resource "null_resource" "kubernetes" {
   count = "${var.count}"
 
   connection {
-    host  = "${element(var.connections, count.index)}"
-    user  = "root"
+    host = "${element(var.connections, count.index)}"
+    user = "root"
     agent = true
+  }
+
+  provisioner "file" {
+    content = "${file("${path.module}/templates/10-docker-opts.conf")}"
+    destination = "/etc/systemd/system/docker.service.d/10-docker-opts.conf"
+  }
+
+  provisioner "file" {
+    content = "${data.template_file.master_configuration.rendered}"
+    destination = "/tmp/master_configuration.yaml"
   }
 
   provisioner "remote-exec" {
@@ -41,39 +51,31 @@ resource "null_resource" "kubernetes" {
   }
 
   provisioner "remote-exec" {
-    inline = ["[ -d /etc/systemd/system/docker.service.d ] || mkdir -p /etc/systemd/system/docker.service.d"]
-  }
-
-  provisioner "file" {
-    content     = "${file("${path.module}/templates/10-docker-opts.conf")}"
-    destination = "/etc/systemd/system/docker.service.d/10-docker-opts.conf"
-  }
-
-  provisioner "file" {
-    content     = "${data.template_file.master-configuration.rendered}"
-    destination = "/tmp/master-configuration.yml"
+    inline = [
+      "[ -d /etc/systemd/system/docker.service.d ] || mkdir -p /etc/systemd/system/docker.service.d"
+    ]
   }
 
   provisioner "remote-exec" {
-      inline = <<EOF
-  ${element(data.template_file.install.*.rendered, count.index)}
-  EOF
+    inline = << EOF
+    ${element(data.template_file.install.*.rendered, count.index)}
+    EOF
   }
 
   provisioner "remote-exec" {
-    inline = <<EOF
-${count.index == 0 ? data.template_file.master.rendered : data.template_file.slave.rendered}
-EOF
+    inline = << EOF
+    ${count.index == 0 ? data.template_file.master.rendered : data.template_file.slave.rendered}
+    EOF
   }
 }
 
-data "template_file" "master-configuration" {
-  template = "${file("${path.module}/templates/master-configuration.yml")}"
+data "template_file" "master_configuration" {
+  template = "${file("${path.module}/templates/master_configuration.yaml")}"
 
   vars {
     api_advertise_addresses = "${element(var.vpn_ips, 0)}"
-    etcd_endpoints          = "- ${join("\n  - ", var.etcd_endpoints)}"
-    cert_sans               = "- ${element(var.connections, 0)}"
+    etcd_endpoints = "- ${join("\n  - ", var.etcd_endpoints)}"
+    cert_sans = "- ${element(var.connections, 0)}"
   }
 }
 
@@ -90,12 +92,12 @@ data "template_file" "slave" {
 
   vars {
     master_ip = "${element(var.vpn_ips, 0)}"
-    token     = "${data.external.cluster_token.result.token}"
+    token = "${data.external.cluster_token.result.token}"
   }
 }
 
 data "template_file" "install" {
-  count    = "${var.count}"
+  count = "${var.count}"
   template = "${file("${path.module}/scripts/install.sh")}"
 
   vars {
@@ -106,7 +108,7 @@ data "template_file" "install" {
 }
 
 data "external" "cluster_token" {
-  program = ["sh", "${path.module}/scripts/gen_token.sh"]
+  program = ["sh", "${path.module}/scripts/token.sh"]
 }
 
 output "overlay_interface" {
