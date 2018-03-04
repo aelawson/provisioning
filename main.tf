@@ -14,6 +14,17 @@ module "provider" {
   region          = "${var.digitalocean_region}"
 }
 
+module "kubernetes" {
+  source         = "./services/kubernetes"
+
+  count          = "${var.hosts}"
+  connections    = "${module.provider.public_ips}"
+  cluster_name   = "${var.domain}"
+  vpn_interface  = "${module.wireguard.vpn_interface}"
+  vpn_ips        = "${module.wireguard.vpn_ips}"
+  etcd_endpoints = "${module.etcd.endpoints}"
+}
+
 module "wireguard" {
   source       = "./security/wireguard"
 
