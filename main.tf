@@ -14,8 +14,18 @@ module "provider" {
   region          = "${var.digitalocean_region}"
 }
 
+module "wireguard" {
+  source       = "./security/wireguard"
+
+  count        = "${var.hosts}"
+  connections  = "${module.provider.public_ips}"
+  private_ips  = "${module.provider.private_ips}"
+  hostnames    = "${module.provider.hostnames}"
+  overlay_cidr = "${module.kubernetes.overlay_cidr}"
+}
+
 module "firewall" {
-  source = "./security/ufw"
+  source               = "./security/ufw"
 
   count                = "${var.hosts}"
   connections          = "${module.provider.public_ips}"
