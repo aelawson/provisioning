@@ -57,13 +57,13 @@ resource "null_resource" "kubernetes" {
   }
 
   provisioner "remote-exec" {
-    inline = << EOF
+    inline = <<EOF
     ${element(data.template_file.install.*.rendered, count.index)}
     EOF
   }
 
   provisioner "remote-exec" {
-    inline = << EOF
+    inline = <<EOF
     ${count.index == 0 ? data.template_file.master.rendered : data.template_file.slave.rendered}
     EOF
   }

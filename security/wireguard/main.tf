@@ -52,13 +52,13 @@ resource "null_resource" "wireguard" {
   }
 
   provisioner "remote-exec" {
-    inline = {
+    inline = [
       "${join("\n", formatlist("echo '%s %s' >> /etc/hosts", data.template_file.vpn_ips.*.rendered, var.hostnames))}",
-    }
+    ]
   }
 
   provisioner "file" {
-    content =
+    content = "${element(data.template_file.interface-conf.*.rendered, count.index)}"
     destination = "/etc/wireguard/${var.vpn_interface}.conf"
   }
 
@@ -126,7 +126,7 @@ resource "null_resource" "wireguard" {
   }
 
   data "external" "keys" {
-    count = "${var.count"
+    count = "${var.count}"
     program = ["sh", "${path.module}/scripts/keys.sh"]
   }
 
